@@ -14,6 +14,8 @@ namespace Zombies
         public readonly ConfigEntry<int> proximityChance;
         public readonly ConfigEntry<int> infectionTimeMin;
         public readonly ConfigEntry<int> infectionTimeMax;
+        public readonly ConfigEntry<bool> zombiesDropBodies;
+        public readonly ConfigEntry<bool> droppedBodiesInfection;
 
 
         public ConfigHandler(ConfigFile cfg)

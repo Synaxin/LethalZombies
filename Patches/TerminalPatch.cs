@@ -5,6 +5,7 @@ using HarmonyLib;
 using UnityEngine;
 using System.Linq;
 using Zombies.Scripts;
+using Unity.Netcode;
 
 namespace Zombies.Patches
 {
@@ -17,7 +18,7 @@ namespace Zombies.Patches
         [HarmonyPostfix]
         static void GetMaskPrefab(ref SelectableLevel[] ___moonsCatalogueList)
         {
-            
+            Zombies.BodySpawn = new BodySpawnHandler();
             foreach (var enemyType in Resources.FindObjectsOfTypeAll<EnemyType>().Distinct())
             {
 

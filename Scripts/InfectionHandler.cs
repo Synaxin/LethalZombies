@@ -32,13 +32,14 @@ namespace Zombies.Scripts
         private static float currentWakeTickTime = 0f;
         private static bool tickWake = false;
         private static Dictionary<PlayerControllerB, InfectionInfo> deadList = new Dictionary<PlayerControllerB, InfectionInfo>();
+        private static Dictionary<NetworkObjectReference, PlayerControllerB> bodyList = new Dictionary<NetworkObjectReference, PlayerControllerB>();
 
 
         public void ClearInfected()
         {
             
             deadList.Clear();
-            
+            bodyList.Clear();
         }
 
         public void AddDeadBody(ulong playerID)
@@ -48,10 +49,65 @@ namespace Zombies.Scripts
                 if (player.playerClientId == playerID)
                 {
                     Zombies.Logger.LogMessage($"Adding Player {player.playerClientId} to deadlist");
-                    deadList.Add(player, new InfectionInfo(player, deadTicks, infectionChance, infectionMinTicks, infectionMaxTicks, proxChance, wakeTicks));
+                    bool good = true;
+                    foreach(var (netRef, playerControl) in bodyList)
+                    {
+                        if (player == playerControl)
+                        {
+                            good = false;
+                            Zombies.Logger.LogMessage("Cancelling Add");
+                        }
+                    }
+                    if (good) //Don't add if player already in zombie list, which means they were converted by a mask
+                    {
+                        deadList.Add(player, new InfectionInfo(player, deadTicks, infectionChance, infectionMinTicks, infectionMaxTicks, proxChance, wakeTicks));
+                    }
                 }
             }
             
+        }
+
+        public void AddZombie(NetworkObjectReference enemy, PlayerControllerB player)
+        {
+            if (player == null || bodyList.ContainsKey(enemy))
+            {
+                return;
+            }
+            Zombies.Logger.LogDebug("Added Player to Zombie List");
+            if (deadList.ContainsKey(player))
+            {
+                deadList.Remove(player);
+            }
+            bodyList.Add(enemy, player);
+        }
+
+        public void ReplaceDeadBody(NetworkObject target)
+        {
+            List<NetworkObjectReference> removeRef = new List<NetworkObjectReference>();
+            foreach (var (reference, body) in bodyList)
+            {
+                NetworkObject netObj;
+                if (reference.TryGet(out netObj))
+                {
+                    if (netObj == target)
+                    {
+                        Vector3[] list = new Vector3[1];
+                        list[0] = target.transform.position;
+                        Zombies.Networking.SendZombieDeadMessage(new ZombieDeadInfo(body.playerClientId, list, reference));
+                        removeRef.Add(reference);
+                    }
+                }
+            }
+            foreach(var reference in removeRef)
+            {
+                if (bodyList.ContainsKey(reference))
+                {
+                    Zombies.Logger.LogDebug("Removing Reference");
+                    PlayerControllerB player = bodyList[reference];
+                    bodyList.Remove(reference);
+                    AddDeadBody(player.playerClientId);
+                }
+            }
         }
         
 
@@ -93,7 +149,7 @@ namespace Zombies.Scripts
                 currentTickTime = 0;
                 foreach (var (body, info) in deadList)
                 {
-                    if (info.GetState() < 0 || body.deadBody == null)
+                    if (info.GetState() < 0 || body.deadBody == null || body.deadBody.deactivated)
                     {
                         removalList.Add(body);
                         continue;

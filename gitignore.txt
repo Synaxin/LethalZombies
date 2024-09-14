@@ -1,0 +1,3 @@
+Zombies/bin/
+
+Zombies/obj/

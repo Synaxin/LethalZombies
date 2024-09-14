@@ -8,6 +8,8 @@ using static BepInEx.BepInDependency;
 using Unity.Netcode;
 using Zombies.Scripts;
 
+//Add MoreCompany compat --Already works
+//Remnants player body compat?
 
 namespace Zombies;
 
@@ -28,6 +30,8 @@ public class Zombies : BaseUnityPlugin
 
     internal static InfectionHandler Infection { get; set; }
 
+    public static BodySpawnHandler BodySpawn { get; set; }
+
 
 
 
@@ -41,6 +45,24 @@ public class Zombies : BaseUnityPlugin
         Patch();
 
         Logger.LogInfo($"Zombies v{MyPluginInfo.PLUGIN_VERSION} has loaded!");
+    }
+
+    public static bool GetConverted(PlayerControllerB player)
+    {
+        
+        bool converted = BodySpawn.ContainsPlayer(player);
+        Zombies.Logger.LogDebug($"Got Converted, {converted}, {BodySpawn.convertedList.Count}");
+        return BodySpawn.ContainsPlayer(player);
+    }
+
+    public static void TryRemoveConverted(PlayerControllerB player)
+    {
+        BodySpawn.RemovePlayer(player);
+    }
+
+    public static void ClearConverted()
+    {
+        BodySpawn.ResetList();
     }
 
     internal static void Patch()

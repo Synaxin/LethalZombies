@@ -30,11 +30,11 @@ namespace Zombies.Patches
         [HarmonyPrefix]
         public static void ShipHasLeftPatch()
         {
-            if (Zombies.Infection == null)
+            if (Zombies.Infection != null)
             {
-                return;
+                Zombies.Infection.ClearInfected();
             }
-            Zombies.Infection.ClearInfected();
+            Zombies.ClearConverted();
         }
     }
 }
