@@ -19,5 +19,12 @@ namespace Zombies.Patches
                 Zombies.Infection.ReplaceDeadBody(__instance.NetworkObject);
             }
         }
+
+        [HarmonyPatch("KillEnemyOnOwnerClient")]
+        [HarmonyPostfix]
+        private static void KillEnemyOwnerPatch(EnemyAI __instance)
+        {
+            Zombies.Logger.LogDebug("Enemy Killed OwnerClient");
+        }
     }
 }

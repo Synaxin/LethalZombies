@@ -14,22 +14,27 @@ namespace Zombies.Patches
     
     internal class TerminalPatch
     {
+        
         [HarmonyPatch("Start")]
         [HarmonyPostfix]
         static void GetMaskPrefab(ref SelectableLevel[] ___moonsCatalogueList)
         {
-            Zombies.BodySpawn = new BodySpawnHandler();
+            
+            /*
             foreach (var enemyType in Resources.FindObjectsOfTypeAll<EnemyType>().Distinct())
             {
-
+                Zombies.Logger.LogDebug($"{enemyType.name}");
                 if (enemyType.name == "MaskedPlayerEnemy")
                 {
-                    Zombies.Logger.LogDebug("Masked Type Found");
+                    Zombies.Logger.LogDebug($"Enemytype prefab {enemyType.enemyPrefab.name} {enemyType.enemyPrefab} name {enemyType.enemyName} hash {enemyType.enemyPrefab.GetHashCode()}");
+                    Zombies.Logger.LogDebug($"Masked Type Found {enemyType.name}");
                     Zombies.maskEnemy = enemyType;
-                    return;
+                    //return;
                 }
             }
-            
+             */
+
         }
+
     }
 }

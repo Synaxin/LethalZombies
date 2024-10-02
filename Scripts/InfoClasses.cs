@@ -33,11 +33,19 @@ namespace Zombies.Scripts
     {
         public readonly ulong playerID;
         public readonly ulong targetID;
+        public readonly NetworkObjectReference enemy;
 
         public ZombieSpawnInfo(ulong playerID, ulong targetID)
         {
             this.playerID = playerID;
             this.targetID = targetID;
+        }
+
+        public ZombieSpawnInfo(ulong playerID, ulong targetID, NetworkObjectReference enemy)
+        {
+            this.playerID = playerID;
+            this.targetID = targetID;
+            this.enemy = enemy;
         }
     }
 

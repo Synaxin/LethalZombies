@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using GameNetcodeStuff;
 using HarmonyLib;
+using UnityEngine;
 using Unity.Netcode;
 using Zombies.Scripts;
 
@@ -15,27 +16,39 @@ namespace Zombies.Patches
     [HarmonyPatch(typeof(PlayerControllerB))]
     internal static class PlayerControllerBPatch
     {
+        /*
         [HarmonyPatch(typeof(PlayerControllerB))]
         internal static class PreloadPatches
         {
+
             [HarmonyPostfix]
             [HarmonyPatch(typeof(PlayerControllerB), "ConnectClientToPlayerObject")]
             private static void ConnectClientToPlayerObjectPatch(PlayerControllerB __instance)
             {
                 if (GameNetworkManager.Instance.localPlayerController != __instance) return;
+
                 Zombies.Player = GameNetworkManager.Instance.localPlayerController;
+                if (Zombies.Networking != null)
+                {
+                    Zombies.Networking.Reset();
+                    GameObject.Destroy(Zombies.Networking);
+                }
                 Zombies.Logger.LogDebug("NetworkHandlerAdded!");
-                
                 Zombies.Networking = __instance.gameObject.AddComponent<ZombieNetworkManager>();
             }
         }
+        */
 
         [HarmonyPatch("KillPlayer")]
         [HarmonyPostfix]
         public static void KillPlayerPostfix(PlayerControllerB __instance, bool spawnBody)
         {
             Zombies.Logger.LogDebug($"SpawnBody {spawnBody}");
-            Zombies.Networking.SendDeadMessage(__instance.playerClientId);
+            if (spawnBody)
+            {
+                Zombies.Logger.LogDebug($"ClientID = {__instance.playerClientId}, ActualID = {__instance.actualClientId}");
+                Zombies.Networking.SendDeadMessage(__instance.playerClientId, __instance.actualClientId);
+            }
         }
 
         [HarmonyPatch("SpawnDeadBody")]
@@ -45,10 +58,43 @@ namespace Zombies.Patches
             if (Zombies.GetConverted(__instance))
             {
                 __instance.deadBody.DeactivateBody(false);
+                Zombies.TryRemoveConverted(__instance);
             }
+            /*
+            Zombies.Logger.LogDebug("Check for Zombie -- Spawn Deadbody");
+            if (Zombies.Networking.instaSpawnList.ContainsKey(__instance.actualClientId))
+            {
+                Zombies.Logger.LogDebug("Zombie In Spawnlist -- Spawn Deadbody");
+                bool good = false;
+                if (Zombies.Networking.instaSpawnList[__instance.actualClientId])
+                {
+                    Zombies.Logger.LogDebug("Insta Spawn on -- Spawn Deadbody");
+                    good = true;
+                    if (Zombies.Infection.GetReviveAlone() && !__instance.isPlayerAlone)
+                    {
+                        Zombies.Logger.LogDebug("Not Alone -- Spawn Deadbody");
+                        good = false;
+                    }
+                }
+                if (good)
+                {
+                    Zombies.Logger.LogDebug("Spawning Zombie -- Spawn Deadbody");
+                    __instance.deadBody.DeactivateBody(false);
+                }
+                
+            }
+            */
             Zombies.Logger.LogDebug("Dead Body Spawned");
         }
-        
+
+        /*
+        [HarmonyPatch("KillPlayerServerRpc")]
+        [HarmonyPostfix]
+        private static void KillPlayerServerPatch(PlayerControllerB __instance)
+        {
+            
+        }
+        */
     }
 
     [HarmonyPatch(typeof(PlayerControllerB))]

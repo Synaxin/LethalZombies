@@ -1,10 +1,10 @@
 {
     "name": "Zombies",
-    "version_number": "0.2.0",
+    "version_number": "0.3.9",
     "website_url": "https://github.com/Synaxin/LethalZombies",
     "description": "Adds a chance for dead players to become zombies.",
     "dependencies": [
         "BepInEx-BepInExPack-5.4.2100",
-        "xilophor-LethalNetworkAPI-3.2.1"
+        "xilophor-LethalNetworkAPI-3.3.1"
     ]
 }

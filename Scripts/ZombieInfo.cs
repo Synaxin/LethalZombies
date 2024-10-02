@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using UnityEngine;
 using GameNetcodeStuff;
 using Time = UnityEngine.Time;
 
@@ -8,18 +9,21 @@ namespace Zombies.Scripts
 {
     internal class InfectionInfo
     {
-        private Random rand = new Random((int)Time.time);
+        private System.Random rand = new System.Random((int)Time.time);
         private int deadTime = 0;
         private readonly int deadTicks;
         private readonly float infectionChance;
         private int infectionTime = 0;
         private readonly int infectionTicks = 10;
         private bool infected = false;
+        private PlayerControllerB parentalFigure;
+        private bool parentSet = false;
+        private GameObject parentRagdoll;
         private PlayerControllerB targetPlayer;
         private readonly bool proximity = false;
         private bool done = false;
         private int state = 0;
-        private readonly int wakeTicks = 10;
+        private int wakeTicks = 10;
         private int wakeTime = 0;
 
         public InfectionInfo(PlayerControllerB player, int deadTicks, float infectionChance, int inMinTicks, int inMaxTicks, int proxChance, int wakeTicks)
@@ -108,9 +112,36 @@ namespace Zombies.Scripts
             return state;
         }
 
+        public void SetParentalFigure(PlayerControllerB parent, GameObject ragdoll)
+        {
+            parentSet = true;
+            parentalFigure = parent;
+            parentRagdoll = ragdoll;
+        }
+
+        public void SetWakeTicks(int newWakeTicks)
+        {
+            wakeTicks = newWakeTicks;
+        }
+
         public void SetTarget(PlayerControllerB target)
         {
             targetPlayer = target;
+        }
+
+        public bool GetParentSet()
+        {
+            return parentSet;
+        }
+
+        public PlayerControllerB GetParentalFigure()
+        {
+            return parentalFigure;
+        }
+
+        public GameObject GetRagdoll()
+        {
+            return parentRagdoll;
         }
 
         public PlayerControllerB GetTarget()

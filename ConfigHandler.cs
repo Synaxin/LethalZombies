@@ -14,8 +14,17 @@ namespace Zombies
         public readonly ConfigEntry<int> proximityChance;
         public readonly ConfigEntry<int> infectionTimeMin;
         public readonly ConfigEntry<int> infectionTimeMax;
+        public readonly ConfigEntry<int> wakeTickAmount;
+        public readonly ConfigEntry<int> proxWakeTickAmount;
+        public readonly ConfigEntry<int> proxHeldWakeTickAmount;
         public readonly ConfigEntry<bool> zombiesDropBodies;
         public readonly ConfigEntry<bool> droppedBodiesInfection;
+        public readonly ConfigEntry<bool> infectLivingPlayers;
+        public readonly ConfigEntry<float> livingInfectionChance;
+        public readonly ConfigEntry<float> livingInfectionModifier;
+        public readonly ConfigEntry<bool> reviveOnDeath;
+        public readonly ConfigEntry<float> reviveOnDeathChance;
+        public readonly ConfigEntry<bool> onlyReviveWhileAlone;
 
 
         public ConfigHandler(ConfigFile cfg)
@@ -51,7 +60,75 @@ namespace Zombies
                 90,                                 // Default value
                 "Maximum ticks before infection is complete\nA tick is ~= 2s"    // Description
             );
-
+            wakeTickAmount = cfg.Bind(
+                "General",                          // Config section
+                "WakeTickAmount",                 // Key of this config
+                10,                                 // Default value
+                "Amount of ticks a waking zombie will seize\nbefore waking up.\nWake ticks are 0.2s"    // Description
+            );
+            proxWakeTickAmount = cfg.Bind(
+                "General",                          // Config section
+                "ProxWakeTickAmount",                 // Key of this config
+                10,                                 // Default value
+                "Amount of ticks a proximity waking zombie will seize\nbefore waking up.\nWake ticks are 0.2s"    // Description
+            );
+            proxHeldWakeTickAmount = cfg.Bind(
+                "General",                          // Config section
+                "ProxHeldWakeTickAmount",                 // Key of this config
+                13,                                 // Default value
+                "Amount of ticks a held proximity waking zombie will seize\nbefore waking up.\nWake ticks are 0.2s"    // Description
+            );
+            zombiesDropBodies = cfg.Bind(
+                "General",                          // Config section
+                "ZombiesDropBodies",                 // Key of this config
+                true,                                 // Default value
+                "Makes converted/zombified players drop bodies"    // Description
+            );
+            droppedBodiesInfection = cfg.Bind(
+                "General",                          // Config section
+                "InfectDeadConverted",                 // Key of this config
+                true,                                 // Default value
+                "Can dead converted players be infected again\nWill not work without Zombies Drop Bodies"    // Description
+            );
+            infectLivingPlayers = cfg.Bind(
+                "General",                          // Config section
+                "InfectLivingPlayers",                 // Key of this config
+                true,                                 // Default value
+                "Can living players be infected on taking damage"    // Description
+            );
+            reviveOnDeath = cfg.Bind(
+                "MirageLegacyFunction",                          // Config section
+                "ReviveOnDeath",                 // Key of this config
+                true,                                 // Default value
+                "Makes it possible for masked to spawn immediately after player dies"    // Description
+            );
+            reviveOnDeathChance = cfg.Bind(
+                "MirageLegacyFunction",                          // Config section
+                "ReviveOnDeathChance",                 // Key of this config
+                5f,                                 // Default value
+                "Chance for masked to instantly spawn"    // Description
+            );
+            onlyReviveWhileAlone = cfg.Bind(
+                "MirageLegacyFunction",                          // Config section
+                "OnlyReviveWhileAlone",                 // Key of this config
+                false,                                 // Default value
+                "Revive On Death only applies while player is alone"    // Description
+            );
+            
+            /*
+            livingInfectionChance = cfg.Bind(
+                "General",                          // Config section
+                "LivingInfectionChance",                 // Key of this config
+                1f,                                 // Default value
+                "Chance for living players to be infected"    // Description
+            );
+            livingInfectionModifier = cfg.Bind(
+                "General",                          // Config section
+                "LivingInfectionModifier",                 // Key of this config
+                0.2f,                                 // Default value
+                "Adds (damage * LivingInfectionModifer) to livingInfectionChance\nSet to 0 to disable"    // Description
+            );
+            */
             // Get rid of old settings from the config file that are not used anymore
             ClearOrphanedEntries(cfg);
             // We need to manually save since we disabled `SaveOnConfigSet` earlier

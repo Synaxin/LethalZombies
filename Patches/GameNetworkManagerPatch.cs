@@ -22,8 +22,10 @@ namespace Zombies.Patches
         [HarmonyPostfix]
         public static void StartDisconnectPost()
         {
+            
             if (Zombies.Infection != null)
             {
+                Zombies.Infection.Reset();
                 Zombies.Infection = null;
             }
         }

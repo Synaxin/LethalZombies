@@ -13,64 +13,82 @@ namespace Zombies.Scripts
     public class ZombieNetworkManager : MonoBehaviour
     {
         System.Random rand = new System.Random();
-        private readonly LNetworkMessage<ulong> deadBodyMessage;
-        private readonly LNetworkMessage<ulong> bloodDropMessage;
-        private readonly LNetworkMessage<BodySyncInfo> bodySyncMessage;
-        private readonly LNetworkMessage<ulong> zombieWakeMessage;
-        private readonly LNetworkMessage<(NetworkObjectReference, ZombieSpawnInfo)> maskSpawnMessage;
-        private readonly LNetworkMessage<ZombieDeadInfo> zombieDeadMessage;
-        private readonly LNetworkMessage<ZombieDeadInfo> bodySpawnOwnerMessage;
-        private readonly LNetworkMessage<ZombieDeadInfo> bodySpawnMessage;
-        private readonly LNetworkMessage<NetworkObjectReference> maskDespawnMessage;
+        private LNetworkMessage<(ulong, ulong)> deadBodyMessage;
+        private LNetworkMessage<ulong> bloodDropMessage;
+        private LNetworkMessage<BodySyncInfo> bodySyncMessage;
+        private LNetworkMessage<ulong> zombieWakeMessage;
+        private LNetworkMessage<(NetworkObjectReference, ZombieSpawnInfo)> maskSpawnMessage;
+        private LNetworkMessage<ZombieDeadInfo> zombieDeadMessage;
+        private LNetworkMessage<ZombieSpawnInfo> maskSpawnResponseMessage;
+        private LNetworkMessage<NetworkObjectReference> maskDespawnMessage;
+        private LNetworkMessage<NetworkObjectReference> maskChangeBodyMessage;
         private Dictionary<NetworkObjectReference, List<ulong>> maskDespawnList = new Dictionary<NetworkObjectReference, List<ulong>>();
+        private Dictionary<NetworkObjectReference, List<ulong>> maskSpawnList = new Dictionary<NetworkObjectReference, List<ulong>>();
+        internal Dictionary<ulong, bool> instaSpawnList = new Dictionary<ulong, bool>();
+        private LNetworkMessage<Dictionary<ulong, bool>> instaSpawnMessage;
+        public static bool set = false;
 
         public ZombieNetworkManager()
         {
-            deadBodyMessage = LNetworkMessage<ulong>.Connect("AddDeadBody");
-            bloodDropMessage = LNetworkMessage<ulong>.Connect("BloodDrop");
-            bodySyncMessage = LNetworkMessage<BodySyncInfo>.Connect("DeadBodySync");
-            zombieWakeMessage = LNetworkMessage<ulong>.Connect("ZombieWake");
-            maskSpawnMessage = LNetworkMessage<(NetworkObjectReference, ZombieSpawnInfo)>.Connect("MaskSpawn");
-            zombieDeadMessage = LNetworkMessage<ZombieDeadInfo>.Connect("ZombieDead");
-            bodySpawnOwnerMessage = LNetworkMessage<ZombieDeadInfo>.Connect("SpawnBodyOwner");
-            bodySpawnMessage = LNetworkMessage<ZombieDeadInfo>.Connect("SpawnBody");
-            maskDespawnMessage = LNetworkMessage<NetworkObjectReference>.Connect("DespawnMask");
+            if (!set)
+            {
+                Zombies.Logger.LogDebug("Setting Up Network Manager");
+                deadBodyMessage = LNetworkMessage<(ulong, ulong)>.Connect("AddDeadBody");
+                bloodDropMessage = LNetworkMessage<ulong>.Connect("BloodDrop");
+                bodySyncMessage = LNetworkMessage<BodySyncInfo>.Connect("DeadBodySync");
+                zombieWakeMessage = LNetworkMessage<ulong>.Connect("ZombieWake");
+                maskSpawnMessage = LNetworkMessage<(NetworkObjectReference, ZombieSpawnInfo)>.Connect("MaskSpawn");
+                zombieDeadMessage = LNetworkMessage<ZombieDeadInfo>.Connect("ZombieDead");
+                maskDespawnMessage = LNetworkMessage<NetworkObjectReference>.Connect("DespawnMask");
+                maskSpawnResponseMessage = LNetworkMessage<ZombieSpawnInfo>.Connect("MaskSpawnResponse");
+                maskChangeBodyMessage = LNetworkMessage<NetworkObjectReference>.Connect("MaskBodyChange");
+                instaSpawnMessage = LNetworkMessage<Dictionary<ulong, bool>>.Connect("InstaSpawnChange");
 
 
-            deadBodyMessage.OnServerReceived += OnDeadMessageServer;
+                deadBodyMessage.OnServerReceived += OnDeadMessageServer;
 
-            bodySyncMessage.OnServerReceived += OnSyncMessageServer;
-            bodySyncMessage.OnClientReceived += OnSyncMessageClient;
+                bodySyncMessage.OnServerReceived += OnSyncMessageServer;
+                bodySyncMessage.OnClientReceived += OnSyncMessageClient;
 
-            bloodDropMessage.OnServerReceived += OnBloodDropServer;
-            bloodDropMessage.OnClientReceived += OnBloodDropClient;
+                bloodDropMessage.OnServerReceived += OnBloodDropServer;
+                bloodDropMessage.OnClientReceived += OnBloodDropClient;
 
-            zombieWakeMessage.OnServerReceived += OnZombieWakeServer;
-            zombieWakeMessage.OnClientReceived += OnZombieWakeClient;
+                zombieWakeMessage.OnServerReceived += OnZombieWakeServer;
+                zombieWakeMessage.OnClientReceived += OnZombieWakeClient;
 
-            maskSpawnMessage.OnServerReceived += OnMaskSpawnServer;
-            maskSpawnMessage.OnClientReceived += OnMaskSpawnClient;
+                maskSpawnMessage.OnServerReceived += OnMaskSpawnServer;
+                maskSpawnMessage.OnClientReceived += OnMaskSpawnClient;
 
-            zombieDeadMessage.OnServerReceived += OnZombieDeadServer;
-            zombieDeadMessage.OnClientReceived += OnZombieDeadClient;
+                zombieDeadMessage.OnServerReceived += OnZombieDeadServer;
+                zombieDeadMessage.OnClientReceived += OnZombieDeadClient;
 
-            maskDespawnMessage.OnServerReceived += OnDespawnServer;
+                maskDespawnMessage.OnServerReceived += OnDespawnServer;
+                maskSpawnResponseMessage.OnServerReceived += OnSpawnResponseServer;
 
+                maskChangeBodyMessage.OnServerReceived += OnBodyChangeServer;
+                maskChangeBodyMessage.OnClientReceived += OnBodyChangeClient;
+
+                instaSpawnMessage.OnServerReceived += OnInstaSpawnChangeServer;
+                instaSpawnMessage.OnClientReceived += OnInstaSpawnChangeClient;
+                set = true;
+            }
+            
         }
 
 
-        internal void SendDeadMessage(ulong id)
+
+        internal void SendDeadMessage(ulong id, ulong actualID)
         {
             Zombies.Logger.LogMessage($"Sent Dead Message from {id}");
-            deadBodyMessage.SendServer(id);
+            deadBodyMessage.SendServer((id, actualID));
         }
 
-        private void OnDeadMessageServer(ulong id, ulong id2)
+        private void OnDeadMessageServer((ulong, ulong) pID, ulong id2)
         {
-            Zombies.Logger.LogMessage($"Received Dead Message from {id}, {id2}");
-            if (id == id2)
+            Zombies.Logger.LogMessage($"Received Dead Message from {pID.Item1}, {id2}");
+            if (pID.Item2 == id2)
             {
-                Zombies.Infection.AddDeadBody(id);
+                Zombies.Infection.AddDeadBody(pID.Item1);
             }
         }
 
@@ -87,7 +105,11 @@ namespace Zombies.Scripts
         }
         internal void OnSyncMessageServer(BodySyncInfo info, ulong id)
         {
-            PlayerControllerB serverBody = info.bodyID.GetPlayerController();
+            if (!(StartOfRound.Instance.allPlayerScripts.Length >= (int)info.bodyID))
+            {
+                return;
+            }
+            PlayerControllerB serverBody = StartOfRound.Instance.allPlayerScripts[info.bodyID];
             if (serverBody == null)
             {
                 return;
@@ -103,16 +125,22 @@ namespace Zombies.Scripts
 
         internal void OnSyncMessageClient(BodySyncInfo info)
         {
-            PlayerControllerB localBody = info.bodyID.GetPlayerController();
+            if (!(StartOfRound.Instance.allPlayerScripts.Length >= (int)info.bodyID))
+            {
+                return;
+            }
+            PlayerControllerB localBody = StartOfRound.Instance.allPlayerScripts[info.bodyID];
             if (localBody == null)
             {
                 return;
             }
-            GameObject localDeadBody = localBody.deadBody.gameObject;
-            if (localDeadBody == null)
+            DeadBodyInfo deadBody = localBody.deadBody;
+            
+            if (deadBody == null)
             {
                 return;
             }
+            GameObject localDeadBody = localBody.deadBody.gameObject;
             if (info.GetDifference(localDeadBody.transform.position, 2))
             {
                 Zombies.Logger.LogDebug($"Perfoming Body Sync On {info.bodyID}");
@@ -135,7 +163,11 @@ namespace Zombies.Scripts
         private void OnBloodDropClient(ulong playerID) 
         {
             Zombies.Logger.LogDebug("OnBloodMessageClient");
-            PlayerControllerB player = playerID.GetPlayerController();
+            if (!(StartOfRound.Instance.allPlayerScripts.Length >= (int)playerID))
+            {
+                return;
+            }
+            PlayerControllerB player = StartOfRound.Instance.allPlayerScripts[playerID];
             if (player == null)
             {
                 return;
@@ -146,20 +178,21 @@ namespace Zombies.Scripts
 
         internal void SendWakeMessage(ulong playerID)
         {
-            Zombies.Logger.LogDebug("SendWakeMessage");
             zombieWakeMessage.SendServer(playerID);
         }
 
         private void OnZombieWakeServer(ulong playerID, ulong id)
         {
-            Zombies.Logger.LogDebug("OnZombieWakeServer");
             zombieWakeMessage.SendClients(playerID);
         }
 
         private void OnZombieWakeClient(ulong playerID)
         {
-            Zombies.Logger.LogDebug("OnZombieWakeClient");
-            PlayerControllerB player = playerID.GetPlayerController();
+            if (!(StartOfRound.Instance.allPlayerScripts.Length >= (int)playerID))
+            {
+                return;
+            }
+            PlayerControllerB player = StartOfRound.Instance.allPlayerScripts[playerID];
             if (player == null)
             {
                 return;
@@ -192,26 +225,44 @@ namespace Zombies.Scripts
         }
         private void OnMaskSpawnServer((NetworkObjectReference, ZombieSpawnInfo) info, ulong playerID)
         {
-            PlayerControllerB player = info.Item2.playerID.GetPlayerController();
+            if (!(StartOfRound.Instance.allPlayerScripts.Length >= (int)playerID))
+            {
+
+                return;
+            }
+            PlayerControllerB player = StartOfRound.Instance.allPlayerScripts[info.Item2.playerID];
+            if (!(StartOfRound.Instance.allPlayerScripts.Length >= (int)playerID))
+            {
+                return;
+            }
+            PlayerControllerB player2 = StartOfRound.Instance.allPlayerScripts[info.Item2.targetID];
             if (player == null)
             {
                 return;
+            }
+            if (player2 == null)
+            {
+                player2 = player;
             }
             if (player.deadBody == null)
             {
                 return;
             }
             Vector3 position = player.deadBody.transform.position;
+            Quaternion rotation = Quaternion.Euler(Vector3.zero);
             if (info.Item2.playerID != info.Item2.targetID)
             {
                 Dictionary<ulong, Vector3> dict = Zombies.Infection.GetPositions();
                 Vector3 pos = dict[info.Item2.targetID];
                 Zombies.Logger.LogDebug($"OnSpawn {pos}");
                 Zombies.Logger.LogDebug($"Target Player {info.Item2.targetID}, Pos1 {position}, pos2 {pos}");
+                Vector3 direction = Vector3.Normalize(position - pos);
+                direction.y = 0;
+                rotation = Quaternion.LookRotation(direction);
                 float lerpMod = Mathf.Clamp01(5 / Vector3.Distance(position, pos));
                 position = Vector3.Lerp(position, pos, lerpMod);
             }
-            NetworkObjectReference netObjectRef = RoundManager.Instance.SpawnEnemyGameObject(position, 0, -1, Zombies.maskEnemy);
+            NetworkObjectReference netObjectRef = RoundManager.Instance.SpawnEnemyGameObject(position, rotation.eulerAngles.y, -1, Zombies.maskEnemy);
             NetworkObject networkObject;
             if (netObjectRef.TryGet(out networkObject))
             {
@@ -223,50 +274,100 @@ namespace Zombies.Scripts
                 component.SetEnemyOutside(!player.isInsideFactory);
                 component.SetVisibilityOfMaskedEnemy();
                 component.SetMaskType(5);
+                //component.SetRunningServerRpc(true);
+                
                 player.redirectToEnemy = (EnemyAI)component;
                 if ((UnityEngine.Object)player.deadBody != (UnityEngine.Object)null)
                     player.deadBody.DeactivateBody(false);
             }
             Zombies.Logger.LogMessage($"Received Mask Server {info.Item2}");
-            maskSpawnMessage.SendClients((netObjectRef, new ZombieSpawnInfo(info.Item2.playerID, 0)));
+            maskSpawnMessage.SendClients((netObjectRef, new ZombieSpawnInfo(info.Item2.playerID, info.Item2.targetID, netObjectRef)));
             
         }
+
+        private void OnSpawnResponseServer(ZombieSpawnInfo info, ulong id)
+        {
+            if (maskSpawnList.ContainsKey(info.enemy))
+            {
+                Zombies.Logger.LogDebug("Found Spawn Info!");
+                if (!maskSpawnList[info.enemy].Contains(id))
+                {
+                    maskSpawnList[info.enemy].Add(id);
+                }
+            }
+            else
+            {
+                Zombies.Logger.LogDebug("Adding Spawn Info!");
+                maskSpawnList.Add(info.enemy, new List<ulong>());
+                maskSpawnList[info.enemy].Add(id);
+            }
+            if (maskSpawnList[info.enemy].Count >= StartOfRound.Instance.ClientPlayerList.Count)
+            {
+                Zombies.Logger.LogDebug($"All Players responded for spawn! {info.enemy}");
+                NetworkObject netObj;
+                if (info.enemy.TryGet(out netObj))
+                {
+                    Zombies.Logger.LogDebug("Setting Values on spawned Masked!");
+                    MaskedPlayerEnemy component = netObj.GetComponent<MaskedPlayerEnemy>();
+                    component.LookAtPlayerServerRpc((int)info.targetID);
+                    PlayerControllerB player2 = info.targetID.GetPlayerController();
+                    if (player2 != null)
+                    {
+                        component.SetMovingTowardsTargetPlayer(player2);
+                    }
+                    component.SwitchToBehaviourState(1);
+                    component.running = true;
+                    component.creatureAnimator.SetBool("Running", true);
+                    component.SetRunningServerRpc(true);
+                    
+                    
+                }
+                maskSpawnList.Remove(info.enemy);
+            }
+        }
+
         private void OnMaskSpawnClient((NetworkObjectReference, ZombieSpawnInfo) info)
         {
             Zombies.Logger.LogMessage($"Received Client, {info.Item1}");
-            this.StartCoroutine(this.waitForMimicEnemySpawn(info.Item1, info.Item2.playerID));
+            StartOfRound.Instance.StartCoroutine(waitForMimicEnemySpawn(info.Item1, info.Item2, info.Item2.playerID));
         }
 
 
-        private IEnumerator waitForMimicEnemySpawn(NetworkObjectReference netObjectRef, ulong id)
+        private IEnumerator waitForMimicEnemySpawn(NetworkObjectReference netObjectRef, ZombieSpawnInfo info, ulong id)
         {
+            Zombies.Logger.LogDebug("Entered Spawn Coroutine");
             NetworkObject netObject = (NetworkObject)null;
-            PlayerControllerB player = id.GetPlayerController();
+            if (!(StartOfRound.Instance.allPlayerScripts.Length >= (int)id))
+            {
+                yield break;
+            }
+            PlayerControllerB player = StartOfRound.Instance.allPlayerScripts[id];
             if (player == null)
             {
                 yield break;
             }
-            Zombies.Logger.LogMessage(id.GetPlayerController());
             float startTime = Time.realtimeSinceStartup;
             yield return (object)new WaitUntil((Func<bool>)(() => (double)Time.realtimeSinceStartup - (double)startTime > 20.0 || netObjectRef.TryGet(out netObject)));
-            if ((UnityEngine.Object)id.GetPlayerController().deadBody == (UnityEngine.Object)null)
+            if ((UnityEngine.Object)player.deadBody == (UnityEngine.Object)null)
             {
                 startTime = Time.realtimeSinceStartup;
-                yield return (object)new WaitUntil((Func<bool>)(() => (double)Time.realtimeSinceStartup - (double)startTime > 20.0 || (UnityEngine.Object)id.GetPlayerController().deadBody != (UnityEngine.Object)null));
+                yield return (object)new WaitUntil((Func<bool>)(() => (double)Time.realtimeSinceStartup - (double)startTime > 20.0 || (UnityEngine.Object)player.deadBody != (UnityEngine.Object)null));
             }
-            if (!((UnityEngine.Object)id.GetPlayerController().deadBody == (UnityEngine.Object)null))
+            if (!((UnityEngine.Object)player.deadBody == (UnityEngine.Object)null))
             {
                 
                 if ((UnityEngine.Object)netObject != (UnityEngine.Object)null)
                 {
-                    id.GetPlayerController().deadBody.DeactivateBody(false);
+                    Zombies.Logger.LogDebug("Spawn Coroutine Found Netobj");
+                    player.deadBody.DeactivateBody(false);
                     MaskedPlayerEnemy component = netObject.GetComponent<MaskedPlayerEnemy>();
-                    component.mimickingPlayer = id.GetPlayerController();
-                    component.SetSuit(id.GetPlayerController().currentSuitID);
-                    component.SetEnemyOutside(!id.GetPlayerController().isInsideFactory);
+                        component.mimickingPlayer = player;
+                        component.SetSuit(player.currentSuitID);
+                        component.SetEnemyOutside(!player.isInsideFactory);
                     component.SetVisibilityOfMaskedEnemy();
                     component.SetMaskType(5);
-                    id.GetPlayerController().redirectToEnemy = (EnemyAI)component;
+                    player.redirectToEnemy = (EnemyAI)component;
+                    //maskSpawnResponseMessage.SendServer(info);
                 }
             }
         }
@@ -280,12 +381,14 @@ namespace Zombies.Scripts
         private void OnZombieDeadServer(ZombieDeadInfo info, ulong id)
         {
             Zombies.Logger.LogDebug("OnZombieDeadServer");
-            PlayerControllerB player = info.playerID.GetPlayerController();
+            if (!(StartOfRound.Instance.allPlayerScripts.Length >= (int)info.playerID))
+            {
+                return;
+            }
+            PlayerControllerB player = StartOfRound.Instance.allPlayerScripts[info.playerID];
             if (player != null)
             {
                 Zombies.Logger.LogDebug("OnZombieDeadServer2");
-                bodySpawnOwnerMessage.SendClient(info, info.playerID);
-                
                 NetworkObject netObj;
                 if (info.enemy.TryGet(out netObj))
                 {
@@ -300,11 +403,6 @@ namespace Zombies.Scripts
                     zombieDeadMessage.SendClients(info2);
                     //bodySpawnOwnerMessage.SendClient(info2, info2.playerID);
                 }
-
-                if (info.enemy.TryGet(out netObj))
-                {
-                    //netObj.Despawn();
-                }
             }
 
         }
@@ -312,7 +410,11 @@ namespace Zombies.Scripts
         private void OnZombieDeadClient(ZombieDeadInfo info)
         {
             Zombies.Logger.LogDebug("OnZombieDeadClient");
-            PlayerControllerB player = info.playerID.GetPlayerController();
+            if (!(StartOfRound.Instance.allPlayerScripts.Length >= (int)info.playerID))
+            {
+                return;
+            }
+            PlayerControllerB player = StartOfRound.Instance.allPlayerScripts[info.playerID];
             if (player == null)
             {
                 return;
@@ -328,41 +430,53 @@ namespace Zombies.Scripts
                 Zombies.Logger.LogDebug("OnZombieDeadClient3");
                 Zombies.Logger.LogDebug($"{info.position},");
                 Zombies.Logger.LogDebug("OnZombieDeadClient4");
-                player.deadBody.overrideSpawnPosition = true;
-                player.deadBody.gameObject.SetActive(true);
-                player.deadBody.SetBodyPartsKinematic(false);
-                for (int index = 0; index < info.position.Length; ++index)
+                if (Zombies.BoundConfig.zombiesDropBodies.Value)
                 {
-                    Zombies.Logger.LogDebug($"OnZombieDeadClient5, {info.position[index]}");
-                    player.deadBody.bodyParts[index].position = info.position[index];
-                    player.deadBody.bodyParts[index].velocity = Vector3.zero;
-                    //player.deadBody.bodyParts[index].angularVelocity = Vector3.zero;
-                    //player.deadBody.bodyParts[index].ResetCenterOfMass();
-                    //player.deadBody.bodyParts[index].ResetInertiaTensor();
-                }
 
-                player.deadBody.seenByLocalPlayer = false;
-                Zombies.Logger.LogDebug("OnZombieDeadClient6");
-            
-                Zombies.Logger.LogDebug("OnZombieDeadClient7");
-                //player.deadBody.SetBodyPartsKinematic();
-                player.deadBody.deactivated = false;
-                Zombies.Logger.LogDebug("OnZombieDeadClient8");
-                player.redirectToEnemy = null;
+                    player.deadBody.overrideSpawnPosition = true;
+                    player.deadBody.gameObject.SetActive(true);
+                    Zombies.SetReplacementModelVisible(player);
+                    player.deadBody.SetBodyPartsKinematic(false);
+                    for (int index = 0; index < info.position.Length; ++index)
+                    {
+                        Zombies.Logger.LogDebug($"OnZombieDeadClient5, {info.position[index]}");
+                        player.deadBody.bodyParts[index].position = info.position[index];
+                        player.deadBody.bodyParts[index].velocity = Vector3.zero;
+                        //player.deadBody.bodyParts[index].angularVelocity = Vector3.zero;
+                        //player.deadBody.bodyParts[index].ResetCenterOfMass();
+                        //player.deadBody.bodyParts[index].ResetInertiaTensor();
+                    }
+
+                    player.deadBody.seenByLocalPlayer = false;
+                    Zombies.Logger.LogDebug("OnZombieDeadClient6");
+
+                    Zombies.Logger.LogDebug("OnZombieDeadClient7");
+                    //player.deadBody.SetBodyPartsKinematic();
+                    player.deadBody.deactivated = false;
+                    Zombies.Logger.LogDebug("OnZombieDeadClient8");
+                    player.redirectToEnemy = null;
+                }
+                
                 Zombies.Logger.LogDebug("OnZombieDeadClient9");
                 //StartCoroutine(waitForBodyStartFired(info));
                 //StartCoroutine(waitForBodyInactive(player.deadBody, player.playerClientId));
                     if (netObj != null)
                     {
                         Zombies.Logger.LogDebug("OnZombieDeadClient10");
-                        //netObj.Despawn();
-                        netObj.gameObject.SetActive(false);
-                        maskDespawnMessage.SendServer(info.enemy);
+                    //netObj.Despawn();
+                        if (Zombies.BoundConfig.droppedBodiesInfection.Value)
+                        {
+                            netObj.gameObject.SetActive(false);
+                            maskDespawnMessage.SendServer(info.enemy);
+                        }
                     }
                 Zombies.Logger.LogDebug("OnZombieDeadClient11");
                 if (NetworkManager.Singleton.IsServer || NetworkManager.Singleton.IsHost)
                 {
-                    Zombies.Infection.AddDeadBody(player.playerClientId);
+                    if (Zombies.BoundConfig.droppedBodiesInfection.Value)
+                    {
+                        Zombies.Infection.AddDeadBody(player.playerClientId);
+                    }
                 }
             }
         }
@@ -388,7 +502,57 @@ namespace Zombies.Scripts
                 maskDespawnList.Remove(enemy);
             }
         }
-       
+
+        internal void SendBodyChangeMessage(NetworkObjectReference reference)
+        {
+            maskChangeBodyMessage.SendServer(reference);
+        }
+
+        private void OnBodyChangeServer(NetworkObjectReference reference, ulong id)
+        {
+            maskChangeBodyMessage.SendClients(reference);
+        }
+
+        private void OnBodyChangeClient(NetworkObjectReference reference)
+        {
+            StartOfRound.Instance.StartCoroutine(waitForBodyChangeRef(reference));
+        }
+
+        private IEnumerator waitForBodyChangeRef(NetworkObjectReference reference)
+        {
+            Zombies.Logger.LogDebug("Entered Spawn Coroutine");
+            NetworkObject netObject1 = (NetworkObject)null;
+            Zombies.Logger.LogMessage("Changing Body");
+            float startTime = Time.realtimeSinceStartup;
+            yield return (object)new WaitUntil((Func<bool>)(() => (double)Time.realtimeSinceStartup - (double)startTime > 10.0 || reference.TryGet(out netObject1)));
+            if ((UnityEngine.Object)netObject1 != (UnityEngine.Object)null)
+            {
+                Zombies.Logger.LogDebug("Change Body Coroutine Found Netobj");
+                MaskedPlayerEnemy component1 = netObject1.GetComponent<MaskedPlayerEnemy>();
+                if (component1.mimickingPlayer != null)
+                {
+                    component1.mimickingPlayer.redirectToEnemy = null;
+                }
+                
+                    
+            }
+        }
+
+        internal void SendInstaSpawnChange(Dictionary<ulong, bool> dict)
+        {
+            instaSpawnMessage.SendServer(dict);
+        }
+
+        private void OnInstaSpawnChangeServer(Dictionary<ulong, bool> dict, ulong id)
+        {
+            instaSpawnMessage.SendClients(dict);
+        }
+
+        private void OnInstaSpawnChangeClient(Dictionary<ulong, bool> dict)
+        {
+            instaSpawnList = dict;
+        }
+
         private Transform[] GetBodyPartArray(GameObject mask)
         {
             Transform[] partArray = new Transform[11];
