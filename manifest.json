@@ -1,6 +1,6 @@
 {
     "name": "Zombies",
-    "version_number": "0.3.9",
+    "version_number": "0.3.13",
     "website_url": "https://github.com/Synaxin/LethalZombies",
     "description": "Adds a chance for dead players to become zombies.",
     "dependencies": [

@@ -39,11 +39,15 @@ public class Zombies : BaseUnityPlugin
 
     public static bool ModelReplacementAPIFound = false;
 
+    public static Dictionary<MaskedPlayerEnemy, bool> ZombieList;
+    internal static bool foundMasked = false;
+
 
 
 
     private void Awake()
     {
+        ZombieList = new Dictionary<MaskedPlayerEnemy, bool>();
         //BoundConfig = new ConfigHandler(base.Config);
         Logger = base.Logger;
         Instance = this;
@@ -57,12 +61,37 @@ public class Zombies : BaseUnityPlugin
             ModelReplaceScript = new ModelReplacementCompat();
             Logger.LogMessage("Model Replacement API found");
         }
-
-        foreach (var (x, y) in BepInEx.Bootstrap.Chainloader.PluginInfos)
-        {
-            Logger.LogDebug($"{x}, {y}");
-        }
         Logger.LogInfo($"Zombies v{MyPluginInfo.PLUGIN_VERSION} has loaded!");
+    }
+
+    public static void AddZombie(MaskedPlayerEnemy mask, bool proximity)
+    {
+        if (!ZombieList.ContainsKey(mask))
+        {
+            ZombieList.Add(mask, proximity);
+        }
+    }
+
+    public static void RemoveZombie(MaskedPlayerEnemy mask)
+    {
+        if (ZombieList.ContainsKey(mask))
+        {
+            ZombieList.Remove(mask);
+        }
+    }
+
+    public static void ClearZombies()
+    {
+        ZombieList.Clear();
+    }
+
+    public static (bool, bool) GetZombie(MaskedPlayerEnemy mask)
+    {
+        if (ZombieList.ContainsKey(mask))
+        {
+            return (true, ZombieList[mask]);
+        }
+        return (false, false);
     }
 
     public static bool GetConverted(PlayerControllerB player)

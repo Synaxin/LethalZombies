@@ -17,7 +17,7 @@ namespace Zombies.Scripts
         private static float infectionChance = Mathf.Abs(Zombies.BoundConfig.infectionChance.Value); //0.8f;
         private static int infectionMinTicks = Mathf.Abs(Zombies.BoundConfig.infectionTimeMin.Value); //12
         private static int infectionMaxTicks = Mathf.Abs(Zombies.BoundConfig.infectionTimeMax.Value); //36;
-        private static int proxChance = Mathf.Abs(Zombies.BoundConfig.proximityChance.Value); //25;
+        private static float proxChance = Mathf.Abs(Zombies.BoundConfig.proximityChance.Value); //25;
         
 
         private static float timeForTick = 2; //5;
@@ -55,6 +55,7 @@ namespace Zombies.Scripts
             bodyList.Clear();
             infectedList.Clear();
             deadConvertedList.Clear();
+            Zombies.ClearZombies();
             tickProximity = false;
             tickWake = false;
             currentTickTime = 0;
@@ -74,7 +75,7 @@ namespace Zombies.Scripts
             {
                 if (player.isPlayerControlled)
                 {
-                    bool insta = rand.Next(0, 100) <= reviveOnDeathChance;
+                    bool insta = rand.Next(0, 1000) / 10 <= reviveOnDeathChance;
                     dict.Add(player.actualClientId, insta);
                 }
             }

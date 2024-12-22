@@ -1,12 +1,19 @@
 # Zombies
+<h3>NO LONGER IN DEVELOPMENT</h3>
 <p><em>Rise from your graves!</em></p>
 <p>Adds a chance for dead players to come back as Masked.</p>
-<p>Currently in alpha, please report any bugs or suggestions to the thread in the LC modding discord.</p>
-<h2>Planned Features</h2>
-* Different behaviours<br>
-* Infection of living players<br>
-* Chance of reviving as a non-zombie... or a zombie in disguise
+<h2>Known Issues</h3>
+<p>May cause enemy desync in larger modpacks. If you run into this please report it to the discord thread.</p>
 <h2>Changelog</h2>
+<h3>0.3.13</h3>
+<p>Recompiled for v69
+<h3>0.3.12</h3>
+<p>Fixed level load hang with Slaughterhouse interior installed<p>
+<h3>0.3.11</h3>
+<p>Increased decimal point on config chance options to allow for 0.001 on infection, 0.1 on proximity, and 0.1 on mirage style revive.</p>
+<h3>0.3.10</h3>
+<p>Fixed Mirage's mask model disable not working</p>
+<p>Fixed small animation issue with LethalIntelligence</p>
 <h3>0.3.9</h3>
 <p>Fixed issues related to players leaving</p>
 <p>Fixed ModelReplacementAPI bodies disappearing after converted player dies</p>

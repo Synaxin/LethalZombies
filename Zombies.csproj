@@ -3,9 +3,9 @@
     <!-- BepInEx Properties -->
     <PropertyGroup>
         <AssemblyName>synaxin.zombies</AssemblyName>
-        <Product>Zombies</Product>
+        <Product>synaxin.zombies</Product>
         <!-- Change to whatever version you're currently on. -->
-        <Version>0.3.9</Version>
+        <Version>0.3.13</Version>
     </PropertyGroup>
 
     <!-- Project Properties -->

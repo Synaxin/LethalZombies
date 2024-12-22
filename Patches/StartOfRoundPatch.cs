@@ -35,6 +35,7 @@ namespace Zombies.Patches
         {
             Zombies.Logger.LogMessage("StartOfRound Awake!");
             Zombies.ClearConverted();
+            Zombies.ClearZombies();
         }
 
         [HarmonyPatch("ShipHasLeft")]
@@ -60,18 +61,30 @@ namespace Zombies.Patches
         {
             if (NetworkManager.Singleton.IsServer || NetworkManager.Singleton.IsHost)
             Zombies.Infection.RollInstaSpawn();
-            //if (Zombies.maskEnemy == null)
-            foreach (var enemyType in Resources.FindObjectsOfTypeAll<EnemyType>().Distinct())
+            if (!Zombies.foundMasked)
             {
-                Zombies.Logger.LogDebug($"{enemyType.name}");
-                if (enemyType.name == "MaskedPlayerEnemy")
+                foreach (var level in StartOfRound.Instance.levels)
                 {
-                    Zombies.Logger.LogDebug($"Enemytype prefab {enemyType.enemyPrefab.name} {enemyType.enemyPrefab} name {enemyType.enemyName} hash {enemyType.enemyPrefab.GetHashCode()}");
-                    Zombies.Logger.LogDebug($"Masked Type Found {enemyType.name}");
-                    Zombies.maskEnemy = enemyType;
-                    //return;
+                    Zombies.Logger.LogDebug(level.name);
+                    foreach (var enemy in level.Enemies)
+                    {
+                        Zombies.Logger.LogDebug($"{enemy.enemyType.name}");
+                        if (enemy.enemyType.name.Contains("MaskedPlayerEnemy"))
+                        {
+                            Zombies.foundMasked = true;
+                            Zombies.Logger.LogDebug($"Masked Type Found {enemy.enemyType.name}");
+                            Zombies.maskEnemy = enemy.enemyType;
+                            break;
+                            //return;
+                        }
+                    }
+                    if (Zombies.foundMasked)
+                    {
+                        break;
+                    }
                 }
             }
+            
         }
     }
 }

@@ -63,7 +63,6 @@ namespace Zombies.Scripts
                 zombieDeadMessage.OnClientReceived += OnZombieDeadClient;
 
                 maskDespawnMessage.OnServerReceived += OnDespawnServer;
-                maskSpawnResponseMessage.OnServerReceived += OnSpawnResponseServer;
 
                 maskChangeBodyMessage.OnServerReceived += OnBodyChangeServer;
                 maskChangeBodyMessage.OnClientReceived += OnBodyChangeClient;
@@ -250,8 +249,10 @@ namespace Zombies.Scripts
             }
             Vector3 position = player.deadBody.transform.position;
             Quaternion rotation = Quaternion.Euler(Vector3.zero);
+            bool prox = false;
             if (info.Item2.playerID != info.Item2.targetID)
             {
+                prox = true;
                 Dictionary<ulong, Vector3> dict = Zombies.Infection.GetPositions();
                 Vector3 pos = dict[info.Item2.targetID];
                 Zombies.Logger.LogDebug($"OnSpawn {pos}");
@@ -269,11 +270,12 @@ namespace Zombies.Scripts
                 Zombies.Infection.AddZombie(netObjectRef, player);
                 Debug.Log((object)"Got network object for mask enemy");
                 MaskedPlayerEnemy component = networkObject.GetComponent<MaskedPlayerEnemy>();
+                Zombies.AddZombie(component, prox);
                 component.SetSuit(player.currentSuitID);
                 component.mimickingPlayer = player;
                 component.SetEnemyOutside(!player.isInsideFactory);
                 component.SetVisibilityOfMaskedEnemy();
-                component.SetMaskType(5);
+                //component.SetMaskType(5);
                 //component.SetRunningServerRpc(true);
                 
                 player.redirectToEnemy = (EnemyAI)component;
@@ -283,47 +285,6 @@ namespace Zombies.Scripts
             Zombies.Logger.LogMessage($"Received Mask Server {info.Item2}");
             maskSpawnMessage.SendClients((netObjectRef, new ZombieSpawnInfo(info.Item2.playerID, info.Item2.targetID, netObjectRef)));
             
-        }
-
-        private void OnSpawnResponseServer(ZombieSpawnInfo info, ulong id)
-        {
-            if (maskSpawnList.ContainsKey(info.enemy))
-            {
-                Zombies.Logger.LogDebug("Found Spawn Info!");
-                if (!maskSpawnList[info.enemy].Contains(id))
-                {
-                    maskSpawnList[info.enemy].Add(id);
-                }
-            }
-            else
-            {
-                Zombies.Logger.LogDebug("Adding Spawn Info!");
-                maskSpawnList.Add(info.enemy, new List<ulong>());
-                maskSpawnList[info.enemy].Add(id);
-            }
-            if (maskSpawnList[info.enemy].Count >= StartOfRound.Instance.ClientPlayerList.Count)
-            {
-                Zombies.Logger.LogDebug($"All Players responded for spawn! {info.enemy}");
-                NetworkObject netObj;
-                if (info.enemy.TryGet(out netObj))
-                {
-                    Zombies.Logger.LogDebug("Setting Values on spawned Masked!");
-                    MaskedPlayerEnemy component = netObj.GetComponent<MaskedPlayerEnemy>();
-                    component.LookAtPlayerServerRpc((int)info.targetID);
-                    PlayerControllerB player2 = info.targetID.GetPlayerController();
-                    if (player2 != null)
-                    {
-                        component.SetMovingTowardsTargetPlayer(player2);
-                    }
-                    component.SwitchToBehaviourState(1);
-                    component.running = true;
-                    component.creatureAnimator.SetBool("Running", true);
-                    component.SetRunningServerRpc(true);
-                    
-                    
-                }
-                maskSpawnList.Remove(info.enemy);
-            }
         }
 
         private void OnMaskSpawnClient((NetworkObjectReference, ZombieSpawnInfo) info)
@@ -365,7 +326,8 @@ namespace Zombies.Scripts
                         component.SetSuit(player.currentSuitID);
                         component.SetEnemyOutside(!player.isInsideFactory);
                     component.SetVisibilityOfMaskedEnemy();
-                    component.SetMaskType(5);
+                    component.creatureAnimator.SetTrigger("HitEnemy");
+                    //component.SetMaskType(5);
                     player.redirectToEnemy = (EnemyAI)component;
                     //maskSpawnResponseMessage.SendServer(info);
                 }
@@ -392,6 +354,11 @@ namespace Zombies.Scripts
                 NetworkObject netObj;
                 if (info.enemy.TryGet(out netObj))
                 {
+                    MaskedPlayerEnemy component;
+                    if (netObj.TryGetComponent<MaskedPlayerEnemy>(out component))
+                    {
+                        Zombies.RemoveZombie(component);
+                    }
                     Transform[] parts = GetBodyPartArray(netObj.gameObject);
                     Vector3[] positions = new Vector3[parts.Length];
                     for (int i = 0; i < parts.Length; i++)

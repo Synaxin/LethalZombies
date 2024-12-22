@@ -11,7 +11,7 @@ namespace Zombies
         // We define our config variables in a public scope
         public readonly ConfigEntry<int> tryForTicks;
         public readonly ConfigEntry<float> infectionChance;
-        public readonly ConfigEntry<int> proximityChance;
+        public readonly ConfigEntry<float> proximityChance;
         public readonly ConfigEntry<int> infectionTimeMin;
         public readonly ConfigEntry<int> infectionTimeMax;
         public readonly ConfigEntry<int> wakeTickAmount;
@@ -45,7 +45,7 @@ namespace Zombies
             proximityChance = cfg.Bind(
                 "General",                          // Config section
                 "ProximityChance",                  // Key of this config
-                25,                                // Default value
+                25f,                                // Default value
                 "% Chance for zombie to be proximity trigger"    // Description
             );
             infectionTimeMin = cfg.Bind(

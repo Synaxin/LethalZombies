@@ -26,13 +26,13 @@ namespace Zombies.Scripts
         private int wakeTicks = 10;
         private int wakeTime = 0;
 
-        public InfectionInfo(PlayerControllerB player, int deadTicks, float infectionChance, int inMinTicks, int inMaxTicks, int proxChance, int wakeTicks)
+        public InfectionInfo(PlayerControllerB player, int deadTicks, float infectionChance, int inMinTicks, int inMaxTicks, float proxChance, int wakeTicks)
         {
             this.targetPlayer = player;
             this.deadTicks = deadTicks;
             this.infectionChance = infectionChance;
             this.infectionTicks = inMinTicks + rand.Next(inMaxTicks - inMinTicks);
-            this.proximity = rand.Next(100) < proxChance;
+            this.proximity = rand.Next(1000) / 10 < proxChance;
             this.wakeTicks = wakeTicks;
         }
         public int Tick()
@@ -156,7 +156,7 @@ namespace Zombies.Scripts
 
         private bool RollInfection(float chance)
         {
-            float baseNumber = rand.Next(1000) / 10;
+            float baseNumber = rand.Next(100000) / 1000;
             if (baseNumber <= chance)
             {
                 infected = true;

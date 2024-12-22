@@ -22,6 +22,7 @@ namespace Zombies.Patches
             __instance.timeSinceSpawn = 4;
             //__instance.creatureAnimator.SetBool("Stunned", true); //If this doesn't work try SetTrigger("HitEnemy")
             __instance.creatureAnimator.SetTrigger("HitEnemy");
+            Zombies.Logger.LogMessage("Zombies Start Patch MaskedPlayerEnemy");
             __instance.SwitchToBehaviourState(0);
         }
 
